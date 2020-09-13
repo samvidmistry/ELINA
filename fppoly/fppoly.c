@@ -381,66 +381,26 @@ void *get_upper_bound_for_linexpr0_parallel(void *args){
 
 double *get_upper_bound_for_linexpr0(elina_manager_t *man, elina_abstract0_t *element, elina_linexpr0_t **linexpr0, size_t size, size_t layerno){
 	fppoly_t * fp = fppoly_of_abstract0(element);
-	size_t NUM_THREADS = sysconf(_SC_NPROCESSORS_ONLN);
+	size_t NUM_THREADS = 1;
 	nn_thread_t args[NUM_THREADS];
-	pthread_t threads[NUM_THREADS];
-	size_t i;
+	size_t i = 0;
 	//printf("layerno %zu %zu\n",layerno,fp->layers[layerno]->predecessors[0]-1);
 	//fflush(stdout);
 	double * res = (double *)malloc(size*sizeof(double));
-	if(size < NUM_THREADS){
-		for (i = 0; i < size; i++){
-	    		args[i].start = i;
-	    		args[i].end = i+1;
-			args[i].man = man;
-			args[i].fp = fp;
-			args[i].layerno = layerno;
-			args[i].linexpr0 = linexpr0;
-			args[i].res = res;
-	    		pthread_create(&threads[i], NULL,get_upper_bound_for_linexpr0_parallel, (void*)&args[i]);
+	
+    size_t idx_start = 0;
+    size_t idx_n = size / NUM_THREADS;
+    size_t idx_end = idx_start + idx_n;
 
-	  	}
-		for (i = 0; i < size; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
-	else{
-		size_t idx_start = 0;
-		size_t idx_n = size / NUM_THREADS;
-		size_t idx_end = idx_start + idx_n;
-
-
-	  	for (i = 0; i < NUM_THREADS; i++){
-	    		args[i].start = idx_start;
-	    		args[i].end = idx_end;
-			args[i].man = man;
-			args[i].fp = fp;
-			args[i].layerno = layerno;
-			args[i].linexpr0 = linexpr0;
-			args[i].res = res;
-	    		pthread_create(&threads[i], NULL, get_upper_bound_for_linexpr0_parallel, (void*)&args[i]);
-			idx_start = idx_end;
-			idx_end = idx_start + idx_n;
-	    		if(idx_end> size){
-				idx_end = size;
-			}
-			if((i==NUM_THREADS-2)){
-				idx_end = size;
-
-			}
-	  	}
-		//idx_start = idx_end;
-	    	//idx_end = num_out_neurons;
-		//args[i].start = idx_start;
-	    	//args[i].end = idx_end;
-		//args[i].man = man;
-		//args[i].fp = fp;
-		//args[i].layerno = layerno;
-	    	//pthread_create(&threads[i], NULL,update_state_using_previous_layers, (void*)&args[i]);
-		for (i = 0; i < NUM_THREADS; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
+    args[i].start = idx_start;
+    args[i].end = idx_end;
+    args[i].man = man;
+    args[i].fp = fp;
+    args[i].layerno = layerno;
+    args[i].linexpr0 = linexpr0;
+    args[i].res = res;
+    get_upper_bound_for_linexpr0_parallel((void*)&args[i]);
+			
 	return res;
 }
 

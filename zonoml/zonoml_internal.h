@@ -32,7 +32,6 @@
 #include "zonoml.h"
 #include "rdtsc.h"
 
-#include <pthread.h>
 //#include <sys/sysinfo.h>
 
 #ifdef __cplusplus
@@ -183,62 +182,25 @@ static inline void ffn_matmult_zono_parallel(zonotope_internal_t* pr, zonotope_t
 	}
 	
 	zonoml_ffn_matmult_thread_t args[num_threads];
-	pthread_t threads[num_threads];
-	int i;
+	int i = 0;
 	//printf("start %zu\n",num_out_neurons);
 	//fflush(stdout);
-	if((int)num_out_neurons < num_threads){
-		for (i = 0; i < (int)num_out_neurons; i++){
-	    		args[i].start = i; 
-	    		args[i].end = i+1;
-			args[i].pr = pr;
-			args[i].z = z;
-			args[i].start_offset = start_offset;
-			args[i].weights = weights;
-			args[i].bias = bias;
-			args[i].expr_offset = expr_offset;
-			args[i].expr_size = expr_size;   
-			args[i].has_bias = has_bias;			
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			
-	  	}
-		for (i = 0; i < (int)num_out_neurons; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
-	else{
-		size_t idx_start = 0;
-		size_t idx_n = num_out_neurons / num_threads;
-		size_t idx_end = idx_start + idx_n;
+	
+    size_t idx_start = 0;
+    size_t idx_n = num_out_neurons / num_threads;
+    size_t idx_end = idx_start + idx_n;
 		
-		
-	  	for (i = 0; i < num_threads; i++){
-	    		args[i].start = idx_start; 
-	    		args[i].end = idx_end;
-			args[i].pr = pr;
-			args[i].z = z;
-			args[i].start_offset = start_offset;
-			args[i].weights = weights;
-			args[i].bias = bias;
-			args[i].expr_offset = expr_offset;
-			args[i].expr_size = expr_size;   
-			args[i].has_bias = has_bias;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			idx_start = idx_end;
-			idx_end = idx_start + idx_n;
-	    		if(idx_end>num_out_neurons){
-				idx_end = num_out_neurons;
-			}
-			if((i==num_threads-2)){
-				idx_end = num_out_neurons;
-				
-			}
-	  	}
-
-		for (i = 0; i < num_threads; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
+    args[i].start = idx_start; 
+    args[i].end = idx_end;
+    args[i].pr = pr;
+    args[i].z = z;
+    args[i].start_offset = start_offset;
+    args[i].weights = weights;
+    args[i].bias = bias;
+    args[i].expr_offset = expr_offset;
+    args[i].expr_size = expr_size;   
+    args[i].has_bias = has_bias;
+    function((void*)&args[i]);
 	
 }
 
@@ -295,58 +257,25 @@ static inline void relu_zono_parallel(elina_manager_t* man, zonotope_t *z, elina
 	}
 	
 	zonoml_relu_thread_t args[num_threads];
-	pthread_t threads[num_threads];
 	
 	//printf("start %zu\n",num_out_neurons);
 	//fflush(stdout);
-	if((int)num_out_neurons < num_threads){
-		for (i = 0; i < (int)num_out_neurons; i++){
-	    		args[i].start = i; 
-	    		args[i].end = i+1;
-			args[i].man = man;
-			args[i].z = z;
-            		args[i].start_offset = start_offset;
-			args[i].epsilon_map = epsilon_map;	
-			args[i].epsilon_map_extra = epsilon_map_extra;
-			args[i].create_new_noise_symbol = create_new_noise_symbol;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			
-	  	}
-		for (i = 0; i < (int)num_out_neurons; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
-	else{
-		size_t idx_start = 0;
-		size_t idx_n = num_out_neurons / num_threads;
-		size_t idx_end = idx_start + idx_n;
-		
-		
-	  	for (i = 0; i < num_threads; i++){
-	    		args[i].start = idx_start; 
-	    		args[i].end = idx_end;
-			args[i].man = man;
-			args[i].z = z;
-			args[i].start_offset = start_offset;
-			args[i].epsilon_map = epsilon_map;
-			args[i].epsilon_map_extra = epsilon_map_extra;
-			args[i].create_new_noise_symbol = create_new_noise_symbol;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			idx_start = idx_end;
-			idx_end = idx_start + idx_n;
-	    		if(idx_end>num_out_neurons){
-				idx_end = num_out_neurons;
-			}
-			if((i==num_threads-2)){
-				idx_end = num_out_neurons;
-				
-			}
-	  	}
 
-		for (i = 0; i < num_threads; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
+    size_t idx_start = 0;
+    size_t idx_n = num_out_neurons / num_threads;
+    size_t idx_end = idx_start + idx_n;
+    i = 0;
+		
+    args[i].start = idx_start; 
+    args[i].end = idx_end;
+    args[i].man = man;
+    args[i].z = z;
+    args[i].start_offset = start_offset;
+    args[i].epsilon_map = epsilon_map;
+    args[i].epsilon_map_extra = epsilon_map_extra;
+    args[i].create_new_noise_symbol = create_new_noise_symbol;
+    function((void*)&args[i]);
+			
 	if(create_new_noise_symbol){
 		free(epsilon_map);
 		free(epsilon_map_extra);
@@ -372,57 +301,22 @@ static inline void s_curve_zono_parallel(elina_manager_t* man, zonotope_t *z, el
 	}
 	
 	zonoml_s_curve_thread_t args[num_threads];
-	pthread_t threads[num_threads];
 	
-	
-	if((int)num_out_neurons < num_threads){
-		for (i = 0; i < (int)num_out_neurons; i++){
-	    		args[i].start = i; 
-	    		args[i].end = i+1;
-			args[i].man = man;
-			args[i].z = z;
-            		args[i].start_offset = start_offset;
-			args[i].epsilon_map = epsilon_map;	
-			args[i].is_sigmoid = is_sigmoid;
-			args[i].is_used = is_used;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			
-	  	}
-		for (i = 0; i < (int)num_out_neurons; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
-	else{
-		size_t idx_start = 0;
-		size_t idx_n = num_out_neurons / num_threads;
-		size_t idx_end = idx_start + idx_n;
-		
-		
-	  	for (i = 0; i < num_threads; i++){
-	    		args[i].start = idx_start; 
-	    		args[i].end = idx_end;
-			args[i].man = man;
-			args[i].z = z;
-			args[i].start_offset = start_offset;
-			args[i].epsilon_map = epsilon_map;
-			args[i].is_sigmoid = is_sigmoid;
-			args[i].is_used = is_used;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			idx_start = idx_end;
-			idx_end = idx_start + idx_n;
-	    		if(idx_end>num_out_neurons){
-				idx_end = num_out_neurons;
-			}
-			if((i==num_threads-2)){
-				idx_end = num_out_neurons;
-				
-			}
-	  	}
-
-		for (i = 0; i < num_threads; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
+    size_t idx_start = 0;
+    size_t idx_n = num_out_neurons / num_threads;
+    size_t idx_end = idx_start + idx_n;
+    i = 0;
+    
+    args[i].start = idx_start; 
+    args[i].end = idx_end;
+    args[i].man = man;
+    args[i].z = z;
+    args[i].start_offset = start_offset;
+    args[i].epsilon_map = epsilon_map;
+    args[i].is_sigmoid = is_sigmoid;
+    args[i].is_used = is_used;
+    function((void*)&args[i]);
+		    
 	for(i=0; i < (int)num_out_neurons; i++){
 		if(!is_used[i]){
 			zonotope_delete_constrained_noise_symbol(pr, epsilon_map[i]->index, z);
@@ -447,74 +341,32 @@ static inline void conv_matmult_zono_parallel(zonotope_internal_t* pr, zonotope_
 	}
 	
 	zonoml_conv_matmult_thread_t args[num_threads];
-	pthread_t threads[num_threads];
 	int i;
 	//printf("start %zu\n",num_out_neurons);
 	//fflush(stdout);
-	if((int)num_out_neurons < num_threads){
-		for (i = 0; i < (int)num_out_neurons; i++){
-	    		args[i].start = i; 
-	    		args[i].end = i+1;
-			args[i].pr = pr;
-			args[i].z = z;
-			args[i].start_offset = start_offset;
-			args[i].filter_weights = filter_weights;
-			args[i].filter_bias = filter_bias;
-			args[i].expr_offset = expr_offset;
-			args[i].input_size = input_size;
-			args[i].filter_size = filter_size;
-			args[i].num_filters = num_filters;
-			args[i].strides = strides;
-			args[i].output_size = output_size;
-			args[i].pad_top = pad_top;
-			args[i].pad_left = pad_left;   
-			args[i].has_bias = has_bias;			
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			
-	  	}
-		for (i = 0; i < (int)num_out_neurons; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
-	else{
-		size_t idx_start = 0;
-		size_t idx_n = num_out_neurons / num_threads;
-		size_t idx_end = idx_start + idx_n;
-		
-		
-	  	for (i = 0; i < num_threads; i++){
-	    		args[i].start = idx_start; 
-	    		args[i].end = idx_end;
-			args[i].pr = pr;
-			args[i].z = z;
-			args[i].start_offset = start_offset;
-			args[i].filter_weights = filter_weights;
-			args[i].filter_bias = filter_bias;
-			args[i].expr_offset = expr_offset;
-			args[i].input_size = input_size;
-			args[i].filter_size = filter_size;
-			args[i].num_filters = num_filters;
-			args[i].strides = strides;
-			args[i].output_size = output_size;
-			args[i].pad_top = pad_top;
-			args[i].pad_left = pad_left;   
-			args[i].has_bias = has_bias;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			idx_start = idx_end;
-			idx_end = idx_start + idx_n;
-	    		if(idx_end>num_out_neurons){
-				idx_end = num_out_neurons;
-			}
-			if((i==num_threads-2)){
-				idx_end = num_out_neurons;
-				
-			}
-	  	}
-
-		for (i = 0; i < num_threads; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
+	
+    size_t idx_start = 0;
+    size_t idx_n = num_out_neurons / num_threads;
+    size_t idx_end = idx_start + idx_n;
+    i = 0;
+	  	
+    args[i].start = idx_start; 
+    args[i].end = idx_end;
+    args[i].pr = pr;
+    args[i].z = z;
+    args[i].start_offset = start_offset;
+    args[i].filter_weights = filter_weights;
+    args[i].filter_bias = filter_bias;
+    args[i].expr_offset = expr_offset;
+    args[i].input_size = input_size;
+    args[i].filter_size = filter_size;
+    args[i].num_filters = num_filters;
+    args[i].strides = strides;
+    args[i].output_size = output_size;
+    args[i].pad_top = pad_top;
+    args[i].pad_left = pad_left;   
+    args[i].has_bias = has_bias;
+    function((void*)&args[i]);
 	
 }
 
@@ -529,7 +381,6 @@ static inline void pool_zono_parallel(zonotope_internal_t* pr, zonotope_t *z, si
 	}
 	
 	zonoml_pool_thread_t args[num_threads];
-	pthread_t threads[num_threads];
 	int i;
 	zonotope_noise_symbol_t ** epsilon_map = (zonotope_noise_symbol_t **)malloc(num_out_neurons*sizeof(zonotope_noise_symbol_t*));
 	elina_dimchange_t dimadd;
@@ -546,68 +397,29 @@ static inline void pool_zono_parallel(zonotope_internal_t* pr, zonotope_t *z, si
 	
 	//printf("start %zu\n",num_out_neurons);
 	//fflush(stdout);
-	if((int)num_out_neurons < num_threads){
-		for (i = 0; i < (int)num_out_neurons; i++){
-	    		args[i].start = i; 
-	    		args[i].end = i+1;
-			args[i].pr = pr;
-			args[i].z = z;
-			args[i].src_offset = src_offset;
-			args[i].pool_size = pool_size;
-			args[i].dst_offset = dst_offset;
-			args[i].input_size = input_size;
-			args[i].strides = strides;
-			args[i].output_size = output_size;
-			args[i].pad_top = pad_top;
-			args[i].pad_left = pad_left;
-			args[i].epsilon_map = epsilon_map;
-			args[i].is_used = is_used;   
-			args[i].is_maxpool = is_maxpool;
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			
-	  	}
-		for (i = 0; i < (int)num_out_neurons; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
-	else{
-		size_t idx_start = 0;
-		size_t idx_n = num_out_neurons / num_threads;
-		size_t idx_end = idx_start + idx_n;
-		
-		
-	  	for (i = 0; i < num_threads; i++){
-	    		args[i].start = idx_start; 
-	    		args[i].end = idx_end;
-			args[i].pr = pr;
-			args[i].z = z;
-			args[i].src_offset = src_offset;
-			args[i].pool_size = pool_size;
-			args[i].dst_offset = dst_offset;
-			args[i].input_size = input_size;
-			args[i].strides = strides;
-			args[i].output_size = output_size;
-			args[i].pad_top = pad_top;
-			args[i].pad_left = pad_left;  
-			args[i].epsilon_map = epsilon_map;
-			args[i].is_used = is_used;
-		        args[i].is_maxpool = is_maxpool;	
-	    		pthread_create(&threads[i], NULL,function, (void*)&args[i]);
-			idx_start = idx_end;
-			idx_end = idx_start + idx_n;
-	    		if(idx_end>num_out_neurons){
-				idx_end = num_out_neurons;
-			}
-			if((i==num_threads-2)){
-				idx_end = num_out_neurons;
-				
-			}
-	  	}
+	
+    size_t idx_start = 0;
+    size_t idx_n = num_out_neurons / num_threads;
+    size_t idx_end = idx_start + idx_n;
+    i = 0;
 
-		for (i = 0; i < num_threads; i = i + 1){
-			pthread_join(threads[i], NULL);
-		}
-	}
+    args[i].start = idx_start; 
+    args[i].end = idx_end;
+    args[i].pr = pr;
+    args[i].z = z;
+    args[i].src_offset = src_offset;
+    args[i].pool_size = pool_size;
+    args[i].dst_offset = dst_offset;
+    args[i].input_size = input_size;
+    args[i].strides = strides;
+    args[i].output_size = output_size;
+    args[i].pad_top = pad_top;
+    args[i].pad_left = pad_left;  
+    args[i].epsilon_map = epsilon_map;
+    args[i].is_used = is_used;
+    args[i].is_maxpool = is_maxpool;	
+    function((void*)&args[i]);
+			
 	for(i=0; i < (int)num_out_neurons; i++){
 		
 		if(!is_used[i]){
